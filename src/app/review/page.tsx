@@ -42,8 +42,12 @@ function ReviewContent() {
       }
 
       try {
-        // Fetch counters and config
-        const countersList = await db.getCounters();
+        // Fetch counters and redirection link in parallel
+        const [countersList, url] = await Promise.all([
+          db.getCounters(),
+          db.getGoogleReviewUrl()
+        ]);
+        
         const activeCtr = countersList.find(c => c.id === counterId);
         
         if (!activeCtr) {
@@ -59,14 +63,12 @@ function ReviewContent() {
         }
 
         setCounter(activeCtr);
-
-        // Fetch redirection link
-        const url = await db.getGoogleReviewUrl();
         setGoogleUrl(url);
 
-        // Record scan session
-        const sId = await db.recordScan(activeCtr.id, activeCtr.employee_id);
-        setSessionId(sId);
+        // Record scan session in the background so the customer doesn't wait for write completion
+        db.recordScan(activeCtr.id, activeCtr.employee_id)
+          .then(sId => setSessionId(sId))
+          .catch(err => console.error('Error logging scan:', err));
 
       } catch (err) {
         console.error('Error logging scan:', err);

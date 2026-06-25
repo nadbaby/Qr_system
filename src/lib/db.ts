@@ -313,7 +313,6 @@ export const db = {
   },
 
   getGoogleReviewUrl: async () => {
-    await ensureFirebaseSeeded();
     if (isFirebaseConfigured && dbFirestore) {
       try {
         const docRef = doc(dbFirestore, 'settings', 'GOOGLE_REVIEW_URL');
@@ -475,7 +474,6 @@ export const db = {
 
   // COUNTERS
   getCounters: async (): Promise<Counter[]> => {
-    await ensureFirebaseSeeded();
     if (isFirebaseConfigured && dbFirestore) {
       const cSnap = await getDocs(collection(dbFirestore, 'counters'));
       const eSnap = await getDocs(collection(dbFirestore, 'employees'));
@@ -560,7 +558,6 @@ export const db = {
 
   // SCANS, CLICKS, CONFIRMATIONS
   recordScan: async (counterId: string, employeeId: string | null): Promise<string> => {
-    await ensureFirebaseSeeded();
     const scannedAt = new Date().toISOString();
     
     if (isFirebaseConfigured && dbFirestore) {
