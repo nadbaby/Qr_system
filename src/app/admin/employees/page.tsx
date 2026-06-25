@@ -48,7 +48,7 @@ export default function AdminEmployees() {
   const [targetReviewsCount, setTargetReviewsCount] = useState(20);
 
   // Points Form Fields
-  const [pointsActionType, setPointsActionType] = useState<'adjust' | 'reset'>('adjust');
+  const [pointsActionType, setPointsActionType] = useState<'add' | 'deduct' | 'reset'>('add');
   const [adjustPointsValue, setAdjustPointsValue] = useState(5);
   const [adjustReason, setAdjustReason] = useState('');
   const [currentEmpScore, setCurrentEmpScore] = useState(0);
@@ -93,7 +93,7 @@ export default function AdminEmployees() {
     setCurrentEmpScore(score);
     setAdjustPointsValue(5);
     setAdjustReason('');
-    setPointsActionType('adjust');
+    setPointsActionType('add');
     setError(null);
     setPointsOpen(true);
   };
@@ -107,8 +107,9 @@ export default function AdminEmployees() {
     try {
       if (pointsActionType === 'reset') {
         await db.resetScore(selectedEmployee.id, currentEmpScore);
+      } else if (pointsActionType === 'add') {
+        await db.adjustScore(selectedEmployee.id, adjustPointsValue, adjustReason || 'Manual Admin Addition');
       } else {
-        // Adjust points (subtract points value from score)
         await db.adjustScore(selectedEmployee.id, -adjustPointsValue, adjustReason || 'Manual Admin Deduction');
       }
       setPointsOpen(false);
@@ -729,12 +730,23 @@ export default function AdminEmployees() {
 
               <div>
                 <label className="block text-[10px] font-bold text-brand-black uppercase tracking-wider mb-2">Select Score Action</label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
-                    onClick={() => setPointsActionType('adjust')}
-                    className={`p-3 rounded-xl border text-xs font-bold text-center cursor-pointer transition-all ${
-                      pointsActionType === 'adjust'
+                    onClick={() => setPointsActionType('add')}
+                    className={`p-2.5 rounded-xl border text-[10.5px] font-bold text-center cursor-pointer transition-all ${
+                      pointsActionType === 'add'
+                        ? 'border-green-600 bg-green-50 text-green-700 shadow-xs'
+                        : 'border-brand-gray-mid hover:bg-brand-gray-light text-brand-gray-dark'
+                    }`}
+                  >
+                    Add Points
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPointsActionType('deduct')}
+                    className={`p-2.5 rounded-xl border text-[10.5px] font-bold text-center cursor-pointer transition-all ${
+                      pointsActionType === 'deduct'
                         ? 'border-brand-orange bg-brand-orange-light text-brand-orange-dark shadow-xs'
                         : 'border-brand-gray-mid hover:bg-brand-gray-light text-brand-gray-dark'
                     }`}
@@ -744,7 +756,7 @@ export default function AdminEmployees() {
                   <button
                     type="button"
                     onClick={() => setPointsActionType('reset')}
-                    className={`p-3 rounded-xl border text-xs font-bold text-center cursor-pointer transition-all ${
+                    className={`p-2.5 rounded-xl border text-[10.5px] font-bold text-center cursor-pointer transition-all ${
                       pointsActionType === 'reset'
                         ? 'border-red-500 bg-red-50 text-red-700 shadow-xs'
                         : 'border-brand-gray-mid hover:bg-brand-gray-light text-brand-gray-dark'
@@ -755,16 +767,18 @@ export default function AdminEmployees() {
                 </div>
               </div>
 
-              {pointsActionType === 'adjust' && (
+              {pointsActionType !== 'reset' && (
                 <>
                   <div>
-                    <label className="block text-[10px] font-bold text-brand-black uppercase tracking-wider mb-1.5">Points to Deduct</label>
+                    <label className="block text-[10px] font-bold text-brand-black uppercase tracking-wider mb-1.5">
+                      {pointsActionType === 'add' ? 'Points to Add' : 'Points to Deduct'}
+                    </label>
                     <div className="relative">
                       <Hash className="absolute left-3 top-2.5 w-4.5 h-4.5 text-brand-gray-dark" />
                       <input
                         type="number"
                         min={1}
-                        max={currentEmpScore}
+                        max={pointsActionType === 'deduct' ? currentEmpScore : 1000}
                         placeholder="5"
                         value={adjustPointsValue}
                         onChange={(e) => setAdjustPointsValue(Math.max(1, Number(e.target.value)))}
@@ -773,15 +787,15 @@ export default function AdminEmployees() {
                       />
                     </div>
                     <p className="text-[9px] text-brand-gray-dark mt-1 font-semibold">
-                      This number of points will be subtracted from the employee's dynamic standings.
+                      This number of points will be {pointsActionType === 'add' ? 'added to' : 'subtracted from'} the employee's dynamic standings.
                     </p>
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold text-brand-black uppercase tracking-wider mb-1.5">Deduction Reason</label>
+                    <label className="block text-[10px] font-bold text-brand-black uppercase tracking-wider mb-1.5">Action Reason</label>
                     <input
                       type="text"
-                      placeholder="e.g. Customer complaint, fake confirmation"
+                      placeholder={pointsActionType === 'add' ? 'e.g. Sales competition winner, bonus points' : 'e.g. Customer complaint, fake confirmation'}
                       value={adjustReason}
                       onChange={(e) => setAdjustReason(e.target.value)}
                       className="w-full px-3 py-2 border border-brand-gray-mid rounded-xl text-xs focus:outline-none focus:border-brand-orange"
