@@ -783,8 +783,8 @@ export const db = {
         ? rawAdjustments.filter((a) => a.employee_id === empId).reduce((sum, current) => sum + current.points, 0)
         : 0;
 
-      // Fair score calculation: Scan = 1 pt, Click = 2 pts, Confirmed = 5 pts
-      const baseScore = (scans * 1) + (clicks * 2) + (confs * 5);
+      // Fair score calculation: Click = 2 pts, Confirmed = 5 pts
+      const baseScore = (clicks * 2) + (confs * 5);
       const score = Math.max(0, baseScore + adjustmentsSum);
       const rate = scans > 0 ? parseFloat(((clicks / scans) * 100).toFixed(1)) : 0;
       
@@ -813,7 +813,7 @@ export const db = {
         .filter((a) => a.employee_id === emp.id)
         .reduce((sum, current) => sum + current.points, 0);
 
-      const baseScore = (scans * 1) + (clicks * 2) + (confs * 5);
+      const baseScore = (clicks * 2) + (confs * 5);
       const score = Math.max(0, baseScore + adjustmentsSum);
       const rate = scans > 0 ? parseFloat(((clicks / scans) * 100).toFixed(1)) : 0;
 
