@@ -79,20 +79,18 @@ function ReviewContent() {
     initializeSession();
   }, [counterId]);
 
-  const handleWriteReviewClick = async () => {
+  const handleWriteReviewClick = () => {
     if (!counter || !googleUrl) return;
     
     setClickedReview(true);
     
-    try {
-      // Record click event
-      await db.recordClick(sessionId, counter.id, counter.employee_id);
-    } catch (e) {
-      console.error('Error logging click:', e);
-    }
-
-    // Redirect to Google Review page
+    // Open the Google Review page synchronously to prevent browser pop-up blockers from intercepting it
     window.open(googleUrl, '_blank', 'noopener,noreferrer');
+
+    // Record click event asynchronously in the background
+    db.recordClick(sessionId, counter.id, counter.employee_id).catch(e => {
+      console.error('Error logging click:', e);
+    });
   };
 
   const handleConfirmSubmit = async (e: React.FormEvent) => {
