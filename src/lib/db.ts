@@ -280,6 +280,8 @@ const ensureFirebaseSeeded = async () => {
     firebaseSeeded = true;
   } catch (err) {
     console.error('Error during Firestore seeding:', err);
+    // Mark as true so we don't lock future calls in loops
+    firebaseSeeded = true;
   }
 };
 
@@ -289,15 +291,20 @@ export const db = {
   getSettings: async () => {
     await ensureFirebaseSeeded();
     if (isFirebaseConfigured && dbFirestore) {
-      const snap = await getDocs(collection(dbFirestore, 'settings'));
-      const settingsMap: Record<string, string> = {};
-      snap.forEach((d) => {
-        settingsMap[d.id] = d.data().value;
-      });
-      if (!settingsMap['GOOGLE_REVIEW_URL']) {
-        settingsMap['GOOGLE_REVIEW_URL'] = DEFAULT_SETTINGS.GOOGLE_REVIEW_URL;
+      try {
+        const snap = await getDocs(collection(dbFirestore, 'settings'));
+        const settingsMap: Record<string, string> = {};
+        snap.forEach((d) => {
+          settingsMap[d.id] = d.data().value;
+        });
+        if (!settingsMap['GOOGLE_REVIEW_URL']) {
+          settingsMap['GOOGLE_REVIEW_URL'] = DEFAULT_SETTINGS.GOOGLE_REVIEW_URL;
+        }
+        return settingsMap;
+      } catch (err) {
+        console.warn('Error fetching settings from Firestore, using default config:', err);
+        return DEFAULT_SETTINGS;
       }
-      return settingsMap;
     } else {
       return getMockData<any>('fb_settings').reduce((acc: any, curr: any) => {
         return { ...acc, ...curr };
@@ -308,9 +315,14 @@ export const db = {
   getGoogleReviewUrl: async () => {
     await ensureFirebaseSeeded();
     if (isFirebaseConfigured && dbFirestore) {
-      const docRef = doc(dbFirestore, 'settings', 'GOOGLE_REVIEW_URL');
-      const docSnap = await getDoc(docRef);
-      return docSnap.exists() ? docSnap.data().value : DEFAULT_SETTINGS.GOOGLE_REVIEW_URL;
+      try {
+        const docRef = doc(dbFirestore, 'settings', 'GOOGLE_REVIEW_URL');
+        const docSnap = await getDoc(docRef);
+        return docSnap.exists() ? docSnap.data().value : DEFAULT_SETTINGS.GOOGLE_REVIEW_URL;
+      } catch (err) {
+        console.warn('Error fetching GOOGLE_REVIEW_URL from Firestore, using default review link:', err);
+        return DEFAULT_SETTINGS.GOOGLE_REVIEW_URL;
+      }
     } else {
       const settings = localStorage.getItem('fb_settings') 
         ? JSON.parse(localStorage.getItem('fb_settings')!) 
@@ -321,8 +333,12 @@ export const db = {
 
   updateSetting: async (key: string, value: string) => {
     if (isFirebaseConfigured && dbFirestore) {
-      const docRef = doc(dbFirestore, 'settings', key);
-      await setDoc(docRef, { value, updated_at: new Date().toISOString() });
+      try {
+        const docRef = doc(dbFirestore, 'settings', key);
+        await setDoc(docRef, { value, updated_at: new Date().toISOString() });
+      } catch (err) {
+        console.error(`Error updating setting ${key} in Firestore:`, err);
+      }
     } else {
       const settings = localStorage.getItem('fb_settings') 
         ? JSON.parse(localStorage.getItem('fb_settings')!) 
